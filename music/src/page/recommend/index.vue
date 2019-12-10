@@ -40,7 +40,6 @@ export default {
   created() {
     getBanner().then(res => {
       this.banners = res.data.slider;
-      //   console.log(res);
     }),
       getList().then(res => {
         this.list = res.data.list;
