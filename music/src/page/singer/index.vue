@@ -12,13 +12,18 @@
           </ol>
         </li>
       </ul>
-      <ul class="findexList">
+      <ul
+        class="findexList"
+        @touchstart="touchStart"
+        @touchmove="touchMove"
+        @toucchend="touchEnd"
+        ref="uls"
+      >
         <li
           v-for="(item,index) in fIndexList"
           :key="index"
           :class="item===selIndex?'sel':''"
           @click="toggle(item)"
-          
         >{{item}}</li>
       </ul>
     </div>
@@ -33,7 +38,8 @@ export default {
   data() {
     return {
       singers: [],
-      selIndex: "hot"
+      selIndex: "hot",
+      num: 1
     };
   },
   computed: {
@@ -45,22 +51,71 @@ export default {
     }
   },
   methods: {
+    touchStart(e) {
+      this.ulY = this.$refs.uls.getBoundingClientRect().top;
+    },
+    touchMove(e) {
+      //   移动过的Y坐标距离顶部
+      let moveY = e.touches[0].clientY;
+      // 移动过的距离
+      this.distance = moveY - this.ulY;
+      if (moveY <= this.ulY) {
+        this.num = 1;
+      } else if (moveY >= 598) {
+        this.num = 23;
+      } else if (this.ulY < moveY&& moveY < 568) {
+        console.log(1);
+        this.num = Math.ceil(this.distance / 18);
+      }
+      // 根据现在所在的格数获取 下标
+      let findex = this.fIndexList[this.num - 1];
+      // 计算移动过的li数量
+      this.selIndex = findex;
+      this.bs.scrollToElement(this.$refs[findex][0]);
+      
+    },
+    touchEnd(e) {},
     toggle(item) {
       // 索引列表的点击事件
       this.selIndex = item;
-      console.log(this.$refs);
-    //   让better-scroll 滚动到具体的某一个元素
-    // 给滚动位置做一个标记 可以获取dom元素
-      this.bs.scrollToElement(this.$refs[item][0])
+      //   console.log(this.$refs);
+      //   让better-scroll 滚动到具体的某一个元素
+      // 给滚动位置做一个标记 可以获取dom元素
+      this.bs.scrollToElement(this.$refs[item][0]);
     },
     initBs() {
       this.bs = new BS(".wrapper", { probeType: 3, click: true });
+      this.bs.on("scroll", pos => {
+        let scrollY = Math.abs(pos.y);
+        let heights = this.getHeights();
+        //   获取歌手分组的高度数组
+        let scrollIndex = 0;
+        for (let index = 0; index < heights.length; index++) {
+          if (scrollY >= heights[index] && scrollY <= heights[index + 1]) {
+            scrollIndex = index;
+          } else if (scrollY >= heights[heights.length - 1]) {
+            scrollIndex = heights.length - 1;
+          }
+        }
+        this.selIndex = this.fIndexList[scrollIndex];
+        //   console.log(scrollIndex);
+      });
+    },
+    getHeights() {
+      let heights = [];
+      for (const key in this.$refs) {
+        if (key !== "uls") {
+          heights.push(this.$refs[key][0].offsetTop);
+        }
+      }
+      return heights;
     }
   },
   created() {
     getSingerList().then(res => {
       this.singers = getData(res.data.list);
       this.initBs();
+      //   console.log(this.$refs);
     });
   }
 };
